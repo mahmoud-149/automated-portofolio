@@ -1,0 +1,73 @@
+- name: Configure VMware Host with Node Exporter
+
+  hosts: vmware_nodes
+
+  become: yes
+
+  
+
+  # 1. We declare our variables explicitly at the top
+
+  vars:
+
+    exporter_port: "9100"
+
+
+
+  tasks:
+
+    - name: Update apt package cache
+
+      apt:
+
+        update_cache: yes
+
+
+
+    - name: Install prometheus-node-exporter
+
+      apt:
+
+        name: prometheus-node-exporter
+
+        state: present
+
+
+
+    # 2. We explicitly inject the port into the Node Exporter settings file
+
+    - name: Explicitly set Node Exporter listening port
+
+      lineinfile:
+
+        path: /etc/default/prometheus-node-exporter
+
+        regexp: '^ARGS='
+
+        line: 'ARGS="--web.listen-address=:{{ exporter_port }}"'
+
+        state: present
+
+      notify: restart node_exporter
+
+
+
+    # 3. We explicitly tell the firewall to allow traffic on this specific port
+    - name: Open firewall port for Node Exporter
+      ufw:
+        rule: allow
+        port: "{{ exporter_port }}"
+        proto: tcp
+
+    - name: Ensure Node Exporter service is running and enabled
+      service:
+        name: prometheus-node-exporter
+        state: started
+        enabled: yes
+
+  # 4. If the port configuration changes, this handler restarts the service automatically
+  handlers:
+    - name: restart node_exporter
+      service:
+        name: prometheus-node-exporter
+        state: restarted
