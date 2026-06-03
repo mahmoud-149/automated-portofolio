@@ -1,4 +1,4 @@
-FROM 77c003101e88
+FROM nginx:alpine
 
 COPY index.html /usr/share/nginx/html/index.html
 
